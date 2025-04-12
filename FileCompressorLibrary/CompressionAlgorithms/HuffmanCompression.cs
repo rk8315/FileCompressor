@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using CompressionApp.Models;
+using FileCompressorLibrary.Models;
 
-namespace CompressionApp.CompressionAlgorithms
+namespace FileCompressorLibrary.CompressionAlgorithms
 {
-    internal static class HuffmanCompression
+    public static class HuffmanCompression
     {
         public static Dictionary<char, string> BuildHuffmanTable(string input)
         {

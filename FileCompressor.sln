@@ -5,6 +5,8 @@ VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileCompressorLibrary", "FileCompressorLibrary\FileCompressorLibrary.csproj", "{FD4460F9-2C65-4B96-AE4D-E0EAFF8AFB19}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileCompressor.ConsoleApp", "FileCompressor.ConsoleApp\FileCompressor.ConsoleApp.csproj", "{F1BEC909-F4EF-4A14-AB32-88611B400001}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{FD4460F9-2C65-4B96-AE4D-E0EAFF8AFB19}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FD4460F9-2C65-4B96-AE4D-E0EAFF8AFB19}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FD4460F9-2C65-4B96-AE4D-E0EAFF8AFB19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1BEC909-F4EF-4A14-AB32-88611B400001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1BEC909-F4EF-4A14-AB32-88611B400001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1BEC909-F4EF-4A14-AB32-88611B400001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1BEC909-F4EF-4A14-AB32-88611B400001}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

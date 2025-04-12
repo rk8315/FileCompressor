@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CompressionApp.Models
+namespace FileCompressorLibrary.Models
 {
     // Node in the Huffman binary tree
     public class HuffmanNode

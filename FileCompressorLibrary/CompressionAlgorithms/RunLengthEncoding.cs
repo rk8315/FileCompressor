@@ -1,8 +1,8 @@
 ﻿using System.Text;
 
-namespace CompressionApp.CompressionAlgorithms
+namespace FileCompressorLibrary.CompressionAlgorithms
 {
-    internal static class RunLengthEncoding
+    public static class RunLengthEncoding
     {
         public static string Encode(string input)
         {
