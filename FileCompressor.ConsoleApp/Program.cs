@@ -1,5 +1,6 @@
 ﻿using FileCompressorLibrary;
 using FileCompressorLibrary.CompressionAlgorithms;
+using FileCompressorLibrary.Interfaces;
 using FileCompressorLibrary.Models;
 
 namespace FileCompressor.ConsoleApp
@@ -8,14 +9,17 @@ namespace FileCompressor.ConsoleApp
     {
         static void Main(string[] args)
         {
+            IHuffmanCompressor huffman = new HuffmanCompression();
+
             Console.WriteLine("+++ File Compression Test +++");
-            List<string> options = ["1", "2"];
 
             while (true)
             {
                 Console.WriteLine("\nSelect an option:");
                 Console.WriteLine("1. Run-Length Compression");
-                Console.WriteLine("2. Huffman Compression");
+                Console.WriteLine("2. Run-Length Decompression");
+                Console.WriteLine("3. Huffman Compress");
+                Console.WriteLine("4. Huffman Decompress");
                 Console.WriteLine("0. Exit");
                 Console.Write("Option Selected: ");
                 var option = Console.ReadLine();
@@ -31,17 +35,39 @@ namespace FileCompressor.ConsoleApp
                     continue;
                 }
 
-                //TODO: Add check for .txt filetype only
-
                 string input = FileManager.ReadFile(inputPath);
+                string outputPath;
 
                 switch (option)
                 {
                     case "1":
-                        ExecuteRunLength(input, inputPath);
+                        ExecuteRunLengthEncode(input, inputPath);
                         break;
                     case "2":
-                        ExecuteHuffman(input, inputPath);
+                        ExecuteRunLengthDecode(input, inputPath);
+                        break;
+                    case "3":
+                        outputPath = Path.Combine(
+                            Path.GetDirectoryName(inputPath)!,
+                            Path.GetFileNameWithoutExtension(inputPath) + "_huff.bin"
+                        );
+
+                        CompressionBenchmarker.MeasureCompression(
+                            () => huffman.Compress(inputPath, outputPath),
+                            inputPath,
+                            outputPath
+                         );
+
+                        Console.WriteLine($"Huffman compression complete. Output: {outputPath}");
+                        break;
+                    case "4":
+                        outputPath = Path.Combine(
+                            Path.GetDirectoryName(inputPath)!,
+                            Path.GetFileNameWithoutExtension(inputPath) + "_decompressed.txt"
+                        );
+
+                        huffman.Decompress(inputPath, outputPath);
+                        Console.WriteLine($"Huffman decompression complete. Output: {outputPath}");
                         break;
                     default:
                         Console.WriteLine("Invalid choice.");
@@ -52,7 +78,7 @@ namespace FileCompressor.ConsoleApp
             Console.WriteLine("Exiting...");
         }
 
-        static void ExecuteRunLength(string input, string inputPath)
+        static void ExecuteRunLengthEncode(string input, string inputPath)
         {
             Console.WriteLine("Compressing using Run-Length Encoding...");
 
@@ -66,19 +92,18 @@ namespace FileCompressor.ConsoleApp
             CompressionBenchmarker.MeasureCompression(inputPath, RunLengthEncoding.Encode);
         }
 
-        static void ExecuteHuffman(string input, string inputPath)
+        static void ExecuteRunLengthDecode(string input, string inputPath)
         {
-            Console.WriteLine("Compressing using Huffman Encoding...");
+            Console.WriteLine("Decompressing using Run-Length Encoding...");
 
-            var table = HuffmanCompression.BuildHuffmanTable(input);
-            var encoded = HuffmanCompression.Encode(input, table);
-            string outputPath = inputPath + ".huffman.txt";
+            string encoded = RunLengthEncoding.Decode(input);
+            string outputPath = inputPath + ".rle.txt";
 
             FileManager.WriteFile(outputPath, encoded);
 
             Console.WriteLine($"Output saved to {outputPath}");
 
-            CompressionBenchmarker.MeasureCompression(inputPath, s => HuffmanCompression.Encode(s, HuffmanCompression.BuildHuffmanTable(s)));
+            CompressionBenchmarker.MeasureCompression(inputPath, RunLengthEncoding.Decode);
         }
     }
 }
