@@ -40,33 +40,33 @@ namespace FileCompressor.ConsoleApp
 
                 switch (option)
                 {
-                    case "1":
+                    case "1": // Run-Length Compression
                         ExecuteRunLengthEncode(input, inputPath);
                         break;
-                    case "2":
+                    case "2": // Run-Length Decompression
                         ExecuteRunLengthDecode(input, inputPath);
                         break;
-                    case "3":
-                        outputPath = Path.Combine(
-                            Path.GetDirectoryName(inputPath)!,
-                            Path.GetFileNameWithoutExtension(inputPath) + "_huff.bin"
-                        );
+                    case "3": // Huffman Compress
+                        byte[] originalData = FileManager.ReadBytes(inputPath);
+                        byte[] compressed = huffman.Compress(originalData);
+                        outputPath = Path.ChangeExtension(inputPath, ".bkhuff");
+                        FileManager.WriteBytes(outputPath, compressed);
 
                         CompressionBenchmarker.MeasureCompression(
-                            () => huffman.Compress(inputPath, outputPath),
+                            () => huffman.Compress(originalData),
                             inputPath,
                             outputPath
                          );
 
                         Console.WriteLine($"Huffman compression complete. Output: {outputPath}");
                         break;
-                    case "4":
-                        outputPath = Path.Combine(
-                            Path.GetDirectoryName(inputPath)!,
-                            Path.GetFileNameWithoutExtension(inputPath) + "_decompressed.txt"
-                        );
-
-                        huffman.Decompress(inputPath, outputPath);
+                    case "4": // Huffman Decompress
+                        byte[] compressedData = FileManager.ReadBytes(inputPath);
+                        byte[] decompressed = huffman.Decompress(compressedData);
+                        outputPath = Path.ChangeExtension(inputPath, ".original");
+                        FileManager.WriteBytes(outputPath, decompressed);
+                        Console.WriteLine($"Compressed bytes: {compressedData.Length}");
+                        Console.WriteLine($"Decompressed bytes: {decompressed.Length}");
                         Console.WriteLine($"Huffman decompression complete. Output: {outputPath}");
                         break;
                     default:
@@ -83,7 +83,7 @@ namespace FileCompressor.ConsoleApp
             Console.WriteLine("Compressing using Run-Length Encoding...");
 
             string encoded = RunLengthEncoding.Encode(input);
-            string outputPath = inputPath + ".rle.txt";
+            string outputPath = inputPath + ".rle.bin";
 
             FileManager.WriteFile(outputPath, encoded);
 

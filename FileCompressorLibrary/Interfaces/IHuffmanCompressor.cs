@@ -8,7 +8,7 @@ namespace FileCompressorLibrary.Interfaces
 {
     public interface IHuffmanCompressor
     {
-        void Compress(string inputFilePath, string outputFilePath);
-        void Decompress(string inputFilePath, string outputFilePath);
+        byte[] Compress(byte[] input);
+        byte[] Decompress(byte[] compressedData);
     }
 }

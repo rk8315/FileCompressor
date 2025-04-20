@@ -13,220 +13,185 @@ namespace FileCompressorLibrary.CompressionAlgorithms
     {
         private class Node : IComparable<Node>
         {
-            public char? Symbol;
-            public int Frequency;
-            public Node Left, Right;
-
-            public int CompareTo(Node other) => Frequency - other.Frequency;
-
+            public byte? Byte { get; set; }
+            public int Frequency { get; set; }
+            public Node Left { get; set; }
+            public Node Right { get; set; }
             public bool IsLeaf => Left == null && Right == null;
+
+            public int CompareTo(Node other)
+            {
+                return Frequency.CompareTo(other.Frequency);
+            }
         }
 
-        public void Compress(string inputPath, string outputPath)
+        private Dictionary<byte, string> _encodingTable;
+
+        public byte[] Compress(byte[] input)
         {
-            string text = File.ReadAllText(inputPath);
-            Dictionary<char, int> frequencies = text.GroupBy(c => c)
-                                                    .ToDictionary(g => g.Key, g => g.Count());
+            if (input == null || input.Length == 0)
+                throw new ArgumentException("Input data cannot be null or empty.");
+
+            // Frequency table
+            var frequencies = new Dictionary<byte, int>();
+            foreach (var b in input)
+            {
+                if (!frequencies.ContainsKey(b))
+                    frequencies[b] = 0;
+                frequencies[b]++;
+            }
 
             // Build Huffman tree
-            Node root = BuildTree(frequencies);
-
-            // Build code table
-            Dictionary<char, string> codes = new();
-            BuildCodes(root, "", codes);
-
-            //Encode the text
-            var encoded = new StringBuilder();
-            foreach (char c in text)
-            {
-                encoded.Append(codes[c]);
-            }
-
-            // Write encoded data and frequency table
-            using var writer = new BinaryWriter(File.Open(outputPath, FileMode.Create));
-            writer.Write(frequencies.Count);
-            foreach( var kvp in frequencies)
-            {
-                writer.Write(kvp.Key);
-                writer.Write(kvp.Value);
-            }
-
-            byte[] data = BitStringToBytes(encoded.ToString());
-            writer.Write(data.Length);
-            writer.Write(data);
-        }
-
-        public void Decompress(string inputPath, string outputPath) 
-        {
-            using var reader = new BinaryReader(File.OpenRead(inputPath));
-            int tableSize = reader.ReadInt32();
-            Dictionary<char, int> frequencies = new();
-
-            for (int i = 0; i < tableSize; i++)
-            {
-                char symbol = reader.ReadChar();
-                int freq = reader.ReadInt32();
-                frequencies[symbol] = freq;
-            }
-
-            int dataLength = reader.ReadInt32();
-            byte[] data = reader.ReadBytes(dataLength);
-
-            string bitString = BytesToBitString(data);
-
-            Node root = BuildTree(frequencies);
-            var decoded = new StringBuilder();
-
-            Node current = root;
-            foreach (char bit in bitString)
-            {
-                current = bit == '0' ? current.Left : current.Right;
-
-                if (current.IsLeaf)
-                {
-                    decoded.Append(current.Symbol.Value);
-                    current = root;
-                }
-            }
-
-            File.WriteAllText(outputPath, decoded.ToString());
-        }
-
-        private Node BuildTree(Dictionary<char, int> frequencies)
-        {
-            var queue = new PriorityQueue<Node, int>();
+            var priorityQueue = new PriorityQueue<Node, int>();
             foreach (var kvp in frequencies)
             {
-                queue.Enqueue(new Node { Symbol = kvp.Key, Frequency = kvp.Value }, kvp.Value);
+                var node = new Node { Byte = kvp.Key, Frequency = kvp.Value };
+                priorityQueue.Enqueue(node, node.Frequency);
             }
 
-            while (queue.Count > 1)
+            while (priorityQueue.Count > 1)
             {
-                var left = queue.Dequeue();
-                var right = queue.Dequeue();
+                var left = priorityQueue.Dequeue();
+                var right = priorityQueue.Dequeue();
                 var parent = new Node
                 {
                     Frequency = left.Frequency + right.Frequency,
                     Left = left,
                     Right = right,
                 };
-                queue.Enqueue(parent, parent.Frequency);
+                priorityQueue.Enqueue(parent, parent.Frequency);
             }
 
-            return queue.Dequeue();
+            var root = priorityQueue.Dequeue();
+
+            // Build encode table (byte -> bitstring)
+            _encodingTable = new Dictionary<byte, string>();
+            BuildEncodingTable(root, "");
+
+            // Encode the data
+            var bitString = string.Concat(input.Select(b => _encodingTable[b]));
+
+            // Put bits into bytes
+            var outputBytes = new List<byte>();
+
+            // Write original input length (4 bytes)
+            outputBytes.AddRange(BitConverter.GetBytes(input.Length));
+
+            // Write number of unique bytes to header
+            outputBytes.Add((byte)frequencies.Count);
+
+            // Write byte and its frequency to header (4 bytes per frequency)
+            foreach(var kvp in frequencies)
+            {
+                outputBytes.Add(kvp.Key);
+                outputBytes.AddRange(BitConverter.GetBytes(kvp.Value));
+            }
+
+            // Data: actual encoded data bits, pad to bytes
+            int extraBits = (8 - (bitString.Length % 8)) % 8;
+            bitString = bitString.PadRight(bitString.Length + extraBits, '0');
+
+            for (int i = 0; i < bitString.Length; i += 8)
+            {
+                var byteStr = bitString.Substring(i, 8);
+                outputBytes.Add(Convert.ToByte(byteStr, 2));
+            }
+
+            // save padding count to footer
+            outputBytes.Add((byte)extraBits);
+
+            return outputBytes.ToArray();
         }
 
-        private void BuildCodes(Node node, string code, Dictionary<char, string> codes)
+        public byte[] Decompress(byte[] compressedData) 
         {
-            if (node.IsLeaf)
+            if (compressedData == null || compressedData.Length == 0)
+                throw new ArgumentException("Compressed data cannot be null or empty");
+
+            var pointer = 0;
+            int originalLength = BitConverter.ToInt32(compressedData, pointer);
+            pointer += 4;
+
+            // read number of unique bytes
+            int uniqueCount = compressedData[pointer++];
+            var frequencies = new Dictionary<byte, int>();
+
+            // read frequency table
+            for (int i = 0; i < uniqueCount; i++)
             {
-                codes[node.Symbol!.Value] = code;
-                return;
+                byte b = compressedData[pointer++];
+                int freq = BitConverter.ToInt32(compressedData, pointer);
+                pointer += 4;
+                frequencies[b] = freq;
             }
 
-            BuildCodes(node.Left, code + "0", codes);
-            BuildCodes(node.Right, code + "1", codes);
-        }
-
-        private byte[] BitStringToBytes(string bits)
-        {
-            int paddedLength = ((bits.Length + 7) / 8) * 8;
-            bits = bits.PadRight(paddedLength, '0');
-            byte[] result = new byte[bits.Length / 8];
-
-            for (int i = 0; i < result.Length; i++)
+            // rebuild huffman tree
+            var priorityQueue = new PriorityQueue<Node, int>();
+            foreach (var kvp in frequencies)
             {
-                string byteStr = bits.Substring(i * 8, 8);
-                result[i] = Convert.ToByte(byteStr, 2);
+                var node = new Node { Byte = kvp.Key, Frequency = kvp.Value };
+                priorityQueue.Enqueue(node, node.Frequency);
             }
 
-            return result;
-        }
-
-        private string BytesToBitString(byte[] bytes)
-        {
-            var sb = new StringBuilder();
-            foreach (byte b in bytes)
+            while (priorityQueue.Count > 1)
             {
-                sb.Append(Convert.ToString(b, 2).PadLeft(8, '0'));
-            }
-
-            return sb.ToString();
-        }
-    }
-
-    public static class HuffmanCompression_old
-    {
-        public static Dictionary<char, string> BuildHuffmanTable(string input)
-        {
-            // Count how many times each character appears
-            Dictionary<char, int> characterFrequency = input
-                .GroupBy(c => c)
-                .ToDictionary(g => g.Key, g => g.Count());
-
-            PriorityQueue<HuffmanNode, int> pq = new();
-
-            foreach (var item in characterFrequency)
-            {
-                pq.Enqueue(new HuffmanNode(item.Key, item.Value), item.Value);
-            }
-
-            while (pq.Count > 1)
-            {
-                var left = pq.Dequeue();
-                var right = pq.Dequeue();
-                var parent = new HuffmanNode('\0', left.Frequency +  right.Frequency, left, right);
-                pq.Enqueue(parent, parent.Frequency);
-            }
-
-            // Build the encoding table
-            Dictionary<char, string> huffmanTable = new();
-            if (pq.Count > 0)
-            {
-                BuildTableRecursive(pq.Dequeue(), "", huffmanTable);
-            }
-
-            return huffmanTable;
-        }
-
-        private static void BuildTableRecursive(HuffmanNode node, string code, Dictionary<char, string> table)
-        {
-            if (node == null) return;
-
-            if (node.Left == null && node.Right == null)
-                table[node.Character] = code;
-
-            BuildTableRecursive(node.Left, code + "0", table);
-            BuildTableRecursive(node.Right, code + "1", table);
-        }
-
-        public static string Encode(string input, Dictionary<char, string> huffmanTable)
-        {
-            StringBuilder encoded = new();
-            foreach (char c in input)
-            {
-                encoded.Append(huffmanTable[c]);
-            }
-            return encoded.ToString();
-        }
-
-        public static string Decode(string encoded, HuffmanNode root)
-        {
-            StringBuilder decoded = new();
-            HuffmanNode node = root;
-
-            foreach(char bit in encoded)
-            {
-                node = bit == '0' ? node.Left : node.Right; 
-
-                if (node.Left == null && node.Right == null)
+                var left = priorityQueue.Dequeue();
+                var right = priorityQueue.Dequeue();
+                var parent = new Node
                 {
-                    decoded.Append(node.Character);
-                    node = root;
+                    Frequency = left.Frequency + right.Frequency,
+                    Left = left,
+                    Right = right
+                };
+                priorityQueue.Enqueue(parent, parent.Frequency);
+            }
+
+            var root = priorityQueue.Dequeue();
+
+            // extract encoded data without final padding byte
+            int paddingBits = compressedData[^1];
+            int dataLength = compressedData.Length - pointer - 1;
+            var bitList = new List<char>();
+
+            for (int i = 0; i < dataLength; i++)
+            {
+                string bits = Convert.ToString(compressedData[pointer++], 2).PadLeft(8, '0');
+                bitList.AddRange(bits);
+            }
+
+            bitList.RemoveRange(bitList.Count - paddingBits, paddingBits); // remove padding
+
+            // Decoode the bits using huffman tree
+            var output = new List<byte>();
+            var current = root;
+            foreach (var bit in bitList)
+            {
+                current = (bit == '0') ? current.Left : current.Right;
+                if (current.IsLeaf)
+                {
+                    output.Add(current.Byte.Value);
+                    current = root;
+
+                    if (output.Count == originalLength)
+                        break;
                 }
             }
 
-            return decoded.ToString();
+            return output.ToArray();
+        }
+
+        private void BuildEncodingTable(Node node, string path)
+        {
+            if (node == null)
+                return;
+
+            if (node.IsLeaf && node.Byte.HasValue)
+            {
+                _encodingTable[node.Byte.Value] = path;
+            }
+
+            BuildEncodingTable(node.Left, path + "0");
+            BuildEncodingTable(node.Right, path + "1");
         }
     }
 }

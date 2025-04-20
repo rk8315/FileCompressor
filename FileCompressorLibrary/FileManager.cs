@@ -8,6 +8,10 @@ namespace FileCompressorLibrary
 {
     public static class FileManager
     {
+        public static byte[] ReadBytes(string filePath) => File.ReadAllBytes(filePath);
+
+        public static void WriteBytes(string filePath, byte[] content) => File.WriteAllBytes(filePath, content);
+
         public static string ReadFile(string filePath)
         {
             return File.Exists(filePath) ? File.ReadAllText(filePath) : "";
