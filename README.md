@@ -19,7 +19,7 @@ Huffman encoding works best on redundant or text-based data. Modern image format
 - Compress and decompress any file type (`.txt`, `.jpg`, etc.)
 - Custom binary output format with compression metadata
 - Automatic preservation of original file content
-- Pure C# implementation — no external compression libraries used
+- Pure C# implementation â€” no external compression libraries used
 - Educational and extensible code structure for future enhancements
 
 ---
@@ -32,11 +32,11 @@ Imagine the string `"ABABABAAABABAB"`. Since "A" and "B" repeat often, Huffman c
 
 ### How It Works (Simplified):
 
-1. **Count Frequencies** – Analyze how often each byte appears in the file.
-2. **Build Tree** – Construct a binary tree where frequent bytes are closer to the root.
-3. **Generate Codes** – Assign binary strings based on tree paths (left = 0, right = 1).
-4. **Compress Data** – Replace each byte with its binary code.
-5. **Store Metadata** – Save the encoding map and padding info for decompression.
+1. **Count Frequencies** â€“ Analyze how often each byte appears in the file.
+2. **Build Tree** â€“ Construct a binary tree where frequent bytes are closer to the root.
+3. **Generate Codes** â€“ Assign binary strings based on tree paths (left = 0, right = 1).
+4. **Compress Data** â€“ Replace each byte with its binary code.
+5. **Store Metadata** â€“ Save the encoding map and padding info for decompression.
 
 ### Huffman Tree Example:
 
@@ -52,7 +52,6 @@ Suppose we want to compress the string: `"ABBCCCDDDDEEEEE"`
 | D    | 4         |
 | E    | 5         |
 
----
 
 #### Step 2: Build the Huffman Tree
 
@@ -72,7 +71,6 @@ Characters with **lower frequencies go deeper**, resulting in **shorter codes fo
 - Internal nodes show just `[Weight]`, which is the sum of the two child nodes
 - This tree is **binary**, with left = `0` and right = `1`
 
----
 
 #### Step 3: Assign Binary Codes (Left=0, Right=1)
 
@@ -89,14 +87,16 @@ Start from the root and record the path:
 So, encoding `"ABBCCCDDDDEEEEE"` becomes:
 
 A -> 1111 
+
 B -> 1110 1110 
+
 C -> 110 110 110 
+
 D -> 10 10 10 10 
+
 E -> 0 0 0 0 0
 
 Encoded Bits: 1111 1110 1110 110 110 110 10 10 10 10 0 0 0 0 0
-
----
 
 #### Why It Works
 
@@ -105,9 +105,9 @@ Encoded Bits: 1111 1110 1110 110 110 110 10 10 10 10 0 0 0 0 0
 - This balances out the overall bit usage and reduces the total size.
 
 You can see this process in the code by exploring:
-- `BuildEncodingTable(...)` — Assigns binary paths
-- `Compress(...)` — Encodes input into bits
-- `Decompress(...)` — Traverses the tree to decode
+- `BuildEncodingTable(...)` â€” Assigns binary paths
+- `Compress(...)` â€” Encodes input into bits
+- `Decompress(...)` â€” Traverses the tree to decode
 
 ---
 
